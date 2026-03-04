@@ -1,73 +1,39 @@
-# Quantitative Trading Competition for Course Final Project
+# Quantitative Finance Final Project: Backtesting Framework
 
+Welcome to the final project for the Quantitative Finance course! This repository contains the event-driven backtesting framework you will use to develop, test, and evaluate your trading strategies. 
 
-## 1. Competition Timeline
+## 📂 Project Structure
 
+The framework is divided into five main Python scripts. **You only need to modify one of them.**
 
+*   **`strategy.py`**: **(YOUR WORKSPACE)** This is where you will implement your trading logic. It contains the `Strategy` base class.
+*   **`data_feed.py`**: Handles loading the historical market data (from a `.parquet` file) and feeding it to the engine one timestamp at a time.
+*   **`engine.py`**: The core backtest loop. It simulates the passage of time, calls your strategy to get target weights, calculates portfolio returns, and strictly enforces trading rules.
+*   **`evaluator.py`**: Computes standard performance metrics (Cumulative Return, Annualized Return, Volatility, Sharpe Ratio, Max Drawdown) based on your strategy's return history.
+*   **`main.py`**: The execution script. Run this file to test your strategy locally and view your performance report and any error messages.
 
-## 2. Dataset & Universe
+## 🛠️ How to Build Your Strategy
 
-### Asset Universe
-*   **Selection:** All US equities from S&P 500 with sufficient historical data will be selected.
-*   **Survivorship Bias:** Delisted stocks are excluded. While this introduces survivorship bias, it is acceptable for the scope of this academic project.
-*   **Corporate Actions:** All price data will be fully adjusted for stock splits and dividends.
+You will write your code entirely within the `Strategy` class inside `strategy.py`. 
 
-### Data Frequency & Splits
-*   **Frequency:** 5-minute OHLCV data (subject to change to 1-minute or 1-hour).
-*   **Training Data (Public):** Approximately the most recent 6 years of data.
-*   **Public Test Data (Hidden on Kaggle):** Approximately 6 months of data immediately following the training set.
-*   **Private Test Data (Live):** 3 weeks of live data generated during the exam period.
+### The `step` Function
+The engine will call your `step(self, current_prices)` function at every timestamp. 
+*   **Input (`current_prices`)**: A Pandas Series containing the close prices of all assets for the current timestamp. (Index = Tickers, Values = Prices).
+*   **Output**: You must return a Pandas Series of target portfolio weights. (Index = Tickers, Values = Weights).
 
----
+### State Management
+Because the `step` function only receives a snapshot of the *current* prices, you must use the `__init__(self)` method to initialize any variables (like lists or dataframes) if you need to store historical prices or compute rolling indicators (e.g., moving averages).
 
-## 3. Trading Rules & Constraints
+### ⚠️ Trading Rules & Constraints
+The `engine.py` will strictly validate your output at every step. If you violate these rules, the backtest will instantly fail and throw an error:
+1.  **No Short Selling**: Every individual weight must be \( \ge 0 \).
+2.  **No Leverage**: The sum of your weights must be \( \le 1.0 \). 
+3.  **Cash Handling**: If the sum of your weights is less than 1.0, the engine assumes the remaining portion is held in cash. Cash earns a 0% return.
 
-Students will submit a portfolio allocation function. At each timestamp $t$, the function receives historical data and outputs a vector of target portfolio weights.
+## 🚀 How to Run and Test
 
-Let $N$ be the total number of tradable assets. Let $w_{i,t}$ represent the target weight of asset $i$ at time $t$.
-
-### Constraints
-1.  **No Short Selling:** Weights must be non-negative.
-    $$0 \le w_{i,t} \le 1 \quad \text{for all } i \in \{1, \dots, N\}$$
-2.  **Maximum Exposure:** The sum of all asset weights cannot exceed 1 (no leverage).
-    $$\sum_{i=1}^{N} w_{i,t} \le 1$$
-3.  **Cash Allocation:** Any unallocated weight is implicitly held as cash. The weight of cash is defined as:
-    $$w_{\text{cash},t} = 1 - \sum_{i=1}^{N} w_{i,t}$$
-    The return on cash is set to $0\%$.
-4.  **Market Frictions:** To simplify the environment for students, **transaction costs and slippage are assumed to be zero**. 
-
----
-
-## 4. Submission & Execution Mechanism
-
-*   **Platform:** Kaggle (Code Competition format).
-*   **Submission Format:** Students submit a Kaggle Notebook containing their strategy code. No local submissions are permitted.
-*   **Execution State & Data Gap:** 
-    *   During the 3-week live evaluation phase, the Kaggle environment will **only** feed the new live data to the students' notebooks.
-    *   The historical Training and Public Test datasets will *not* be available at runtime during the live phase.
-    *   *Implication:* Students must pre-train their models (e.g., machine learning weights, statistical parameters) locally or in their training notebooks, and hardcode/load these learned parameters into their final submission script. The script must be able to generate allocations using only the live data points provided.
-
----
-
-## 5. Evaluation Metric
-
-For simplicity and clarity, the sole quantitative metric for the competition will be the **Sharpe Ratio**. 
-
-Let $R_{i,t}$ be the return of asset $i$ at time $t$. The total portfolio return $R_{p,t}$ at time $t$ is calculated as the sum of the returns of the individual assets weighted by the allocations chosen at the *previous* timestamp $t-1$:
-
-$$R_{p,t} = \sum_{i=1}^{N} w_{i,t-1} R_{i,t}$$
-
-*(Note: Because cash earns 0%, the cash weight does not contribute to the portfolio return).*
-
-Let $\mu_p$ be the sample mean of the portfolio returns over the evaluation period, and $\sigma_p$ be the sample standard deviation of the portfolio returns:
-
-$$\mu_p = \frac{1}{T} \sum_{t=1}^{T} R_{p,t}$$
-$$\sigma_p = \sqrt{ \frac{1}{T-1} \sum_{t=1}^{T} (R_{p,t} - \mu_p)^2 }$$
-
-The annualized **Sharpe Ratio (SR)** is defined as:
-
-$$\text{SR} = \frac{\mu_p}{\sigma_p} \times \sqrt{F}$$
-
-Where $F$ is the annualization factor based on the data frequency. For example, assuming 252 trading days per year and 78 5-minute bars per standard trading day (9:30 AM - 4:00 PM), $F = 252 \times 78 = 19,656$.
-
-Strategies will be strictly ranked by this Sharpe Ratio on the Private Leaderboard at the end of the 3-week live period.
+1. Ensure you have the provided dataset (e.g., `market_data.parquet`) in your project directory.
+2. Open your terminal or command prompt.
+3. Run the main script:
+   ```bash
+   python main.py
