@@ -3,7 +3,7 @@ import pandas as pd
 """
 STUDENT INSTRUCTIONS:
 1. This Strategy class is where you will implement your own trading strategy.
-2. The current implementation is just a SIMPLE EXAMPLE (Mean Reversion) 
+2. The current implementation is just a SIMPLE EXAMPLE (Moving Average Trend Following) 
    provided for your reference. Please modify this class to build your own strategy.
 3. You may create new Python scripts and import them into this file if you 
    want to organize your code. 
@@ -29,7 +29,7 @@ class Strategy:
         # EXAMPLE STATE VARIABLES (Modify or remove these for your strategy):
         # We will use a list to store the historical price Series
         self.price_history = []
-        self.lookback_period = 5
+        self.lookback_period = 78
 
     def step(self, current_market_data: pd.DataFrame) -> pd.Series:
         """
@@ -39,7 +39,7 @@ class Strategy:
         INPUT:
         current_market_data (pd.DataFrame): Market snapshot at the current timestamp.
                                             Index = Tickers, Columns = fields
-                                            (e.g., 'close', 'volume').
+                                            ('close', 'volume').
                                     
         OUTPUT:
         pd.Series: Target weights for the portfolio.
@@ -74,8 +74,8 @@ class Strategy:
         history_df = pd.DataFrame(self.price_history)
         moving_average = history_df.mean()
         
-        # Identify assets where the current price is below its 5-period moving average
-        bullish_assets = current_prices[current_prices < moving_average].index
+        # Identify assets where the current price is ABOVE its moving average (Trend Following)
+        bullish_assets = current_prices[current_prices > moving_average].index
         
         # 3. Portfolio Allocation
         # Initialize all weights to 0.0
